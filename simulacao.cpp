@@ -7,7 +7,7 @@
 using namespace std;
 
 const int n = 5000;
-const int N = 100;
+const int N = 10;
 const double rho = 0.95;
 double V[N];
 
