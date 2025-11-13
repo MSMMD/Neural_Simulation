@@ -1,6 +1,10 @@
 #pragma once
 #include <cmath>
 
+#ifndef M_E
+    #include <corecrt_math_defines.h>
+#endif
+
 extern const int N;
 
 extern const double pmax;
