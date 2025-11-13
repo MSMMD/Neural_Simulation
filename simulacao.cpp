@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const int n = 5000;
+const int n = 1000;
 const int N = 800;
 const double rho = 0.95;
 double V[N];
@@ -81,12 +81,6 @@ int main(){
         data_disparos << t << "\t" << disparos << "\n";
         data_Vm << t << "\t" << Vm << "\n";
     }
-
-    cout<<"V final:";
-    for(int i=0; i<N; i++){
-        cout<<V[i]<<" ";
-    }
-    cout<<endl;
 
     cout<<"V minimo: "<<vmin<<endl;
     cout<<"V maximo: "<<vmax<<endl;
