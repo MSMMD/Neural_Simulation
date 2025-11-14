@@ -11,8 +11,8 @@ const int N = 800;
 const double rho = 0.95;
 double V[N];
 
-const double pmax = 0.5;
-const double pmin = 0.3;
+const double pmax = 0.2;
+const double pmin = 0.05;
 const double p0 = 0.05;
 const double pi = 0.2;
 
