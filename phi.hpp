@@ -15,5 +15,5 @@ extern const double pi;
 extern double a;
 extern double b;
 
-double phi(double V);
-double Iphi(double p);
+double phi(double V, double k);
+double Iphi(double p, double k);
