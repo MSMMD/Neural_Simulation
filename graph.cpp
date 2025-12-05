@@ -19,8 +19,8 @@ std::vector <std::pair<int, double>>* construct(int seed, int N){
                 -1: 30%
             */
             double U = dist(mat);
-            if(U<0.3) peso = -1;
-            else if(U<0.5) peso = 0;
+            if(U<pmin) peso = -1;
+            else if(U<1-pmax) peso = 0;
             else peso = 1;
                     
             if(peso) viz[i].push_back({j, peso}); // w_(j→i) = peso;
