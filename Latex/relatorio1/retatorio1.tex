@@ -1,0 +1,632 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath, amsthm, amssymb}
+\usepackage[colorlinks=true, urlcolor=blue, linkcolor=cyan]{hyperref}
+\usepackage[brazil]{babel}
+
+\usepackage[
+    a4paper,
+    left=2cm,
+    right=2cm,
+    top=1cm,
+    bottom=2cm
+]{geometry}
+
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor} % Necessário para colorir o código
+
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+
+\lstset{
+    language=C++,                % Define a linguagem
+    basicstyle=\small\ttfamily,  % Estilo da fonte: pequena e monoespaçada
+    numbers=left,                % Numeração de linha à esquerda
+    numberstyle=\tiny\color{codegray}, % Estilo dos números de linha
+    stepnumber=1,                % Numera de 1 em 1
+    showspaces=false,            % Não mostra espaços em branco
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,                % Coloca uma moldura simples
+    tabsize=2,                   % Tamanho da tabulação
+    captionpos=b,                % Posição da legenda (b=bottom)
+    breaklines=true,             % Quebra a linha automaticamente
+    breakatwhitespace=false,
+    keywordstyle=\color{violet}\bfseries, % Estilo das palavras-chave
+    commentstyle=\color{codegray}\itshape, % Estilo dos comentários
+    stringstyle=\color{orange},          % Estilo das strings
+    identifierstyle=\color{black},
+    escapeinside={\%*}{*},       % Permite comandos LaTeX dentro do listing
+    morekeywords={private,public,protected,class,std} % Adicione palavras C++
+}
+
+
+\title{Relatório - Iniciação científica}
+\author{Mateus Scheffer Mendes Maziviero Dolce}
+\date{\today}
+
+\begin{document}
+    \maketitle
+
+    \section{Introdução}
+    \paragraph{}Buscamos realizar uma simulação simplificada da interação neuronal modelada por um grafo.
+        Os neurônios são representados pelos vértices, e as interações de estímulo e inibição pelas arestas.
+        Cada neurônio possui uma probabilidade de disparo determinada pelo seu potencial de membrana.
+        A simulação ocorre em tempo discreto: um evento de disparo zera o potencial do neurônio disparador
+        e modifica o potencial dos neurônios conectados de acordo com as arestas do grafo.
+
+    \paragraph{}Neste momento, o objetivo é encontrar uma função que relaciona a probabilidade de disparo com
+    o potencial de membrana. Por razões biológicas, quanto maior o potencial maior a probabilida, logo queremos uma
+    função estritamente crescente. Por se tratar de probabilidade, a imagem desta função deverá ser limitada $[0,1]$.
+
+    \paragraph{}Consequentemente, uma sigmoide se apresenta como um notável candidato.\\
+    Definiremos $\varphi: \mathbb{R} \rightarrow (0,1)$ como
+    \begin{equation*}
+        \varphi(x) = \frac{1}{1 + e^{-f(x)}}
+    \end{equation*}
+
+    \paragraph{}Com o intuito de simplificar a função, limitaremos $f$ a ser uma função linear $f(x) = x/a - b$.
+    Com $f$ desta maneira, $a$ influenciará na inclinação da sigmoide e $b$, seu deslocamento horizontal.
+    \paragraph{}Para termos $\varphi(0) = \epsilon$, $b = ln(\frac{1}{\epsilon} - 1)$. Já a inclinação dependerá de quanto o potencial
+    de certo neurônio possa variar na passagem do tempo. Sendo $p_{w^+}$ e $p_{w^-}$ os pesos esperados positivo e negativo das arestas,
+    $(p_{w^+} - p_{w^-})(N-1)$ representa a variação de potencial esperada em certo neurônio se todos os demais dispararem.
+    Então, escolheremos $a \sim (p_{w^+} - p_{w^-})(N-1)$.
+
+    \newpage
+
+    \section{Métodos}
+        \subsection{Modelo da Rede Neural baseada em Grafos Orientados}
+
+        \subsubsection{Arquitetura do Grafo}
+        \begin{itemize}
+            \item \textbf{Vértices:} Usamos $N$ vértices para representar os
+            neurônios de maneira homogênea.
+            \item \textbf{Arestas:} Usamos um grafo orientado aleatório $G(N, 0.8)$.
+            \item \textbf{Peso das arestas:} Representamos as ações de estimulo e
+            inibição entre os neurônios. Sendo $w_{i\rightarrow j}$ o peso da aresta que
+            conecta o vértice $i$ até o $j$, neste sentido,
+            \begin{equation*}
+                w_{i \rightarrow j} =
+                \begin{cases}
+                    +1 \text{ com chance } \frac{50\%}{0.8}\\
+                    -1 \text{ com chance } \frac{30\%}{0.8}.
+                \end{cases}
+            \end{equation*} 
+        \end{itemize}
+
+        \subsubsection{Dinâmica do Potencial de Membrana e Disparo}
+        \begin{itemize}
+            \item \textbf{Potencial de Membrana ($V_i$):} Representamos por um valor real.
+            \item \textbf{Probabilidade de Disparo no tempo $t$:} Calculamos a probabilidade segundo uma
+            f.d.p. $\varphi: \mathbb{R} \rightarrow (0, 1)$.
+            Sendo $\epsilon = \varphi(0)$, $p_{w^+}$ e $p_{w^-}$ os pesos esperados positivo e
+            negativo das arestas, respectivamente e o $p_\mathbf{e}$ o valor que desejamos do $\varphi(\bar V)$.
+            Definimos $\varphi$ como
+                \begin{gather*}
+                    \varphi(x) = \frac{1}{1+ e^{-(x/a - b)}}\\
+                    b = \ln(1/\epsilon - 1)\\
+                    a = \frac{(p_{w^+} - p_{w^-})(N-1)}{p_\mathbf{e}/\epsilon}.
+                \end{gather*}
+        \end{itemize}
+
+        \subsubsection{Regras de propagação}
+            \begin{enumerate}
+                \item \textbf{Vazamento do potencial:} Sendo $\rho \in [0,1]$, na passagem do tempo $t$ para $t+1$,
+                $V_i \leftarrow \rho \cdot V_i$.
+                
+                \item \textbf{Modulação do Potencial:} Para cada neurônio vizinho $j$ de um neurônio disparado $i$,
+                $V_j \leftarrow V_j + w_{i \rightarrow j}$.
+
+                \item \textbf{Restauração do Potencial:} Caso um neurônio $i$ tenha disparado, $V_i \leftarrow 0$.
+            \end{enumerate}
+
+        \subsection{Implementação Computacional}
+            \subsubsection{Ambiente de desenvolvimento e linguagem}
+            \begin{itemize}
+                \item \textbf{Linguagem de programação:} C++17.
+                \item \textbf{Compiladores:} MinGw, GCC.
+                \item \textbf{Sistema Operacioanl:} Windows 11, Linux(Ubuntu).
+            \end{itemize}
+
+            \subsubsection{Estrutura de Dados para o Grafo}
+            \begin{itemize}
+                \item \textbf{Representação do Grafo:} Armazenamos os pesos por meio de listas de adjacência $viz$, com um
+                \emph{array} da estrutura \emph{vector}. Cada elemento na lista do vértice $j$ guarda o \emph{pair}
+                $(i, w_{i\rightarrow j})$.
+
+                \item \textbf{Geração de N.A.:} Usamos a biblioteca padrão \lstinline{<random>} e o algoritmo
+                \lstinline{mt19937} para fazer a \lstinline{uniform_real_distribution<double> dist(0.0, 1.0);}.
+            \end{itemize}
+
+            \subsubsection{Parâmetros da Simulação e Condições Iniciais}
+            \begin{itemize}
+                \item \textbf{Parâmetros:}
+                    \begin{itemize}
+                        \item \lstinline{N}: Número de neurônios. $N$ testados: 70, 100, 300 e 800.
+                        \item \lstinline{n}: Duração da simulação. $n$ testados: 10, 100, 1000 e 5000.
+                        \item \lstinline{rho}: $\rho = 0.95$.
+                        \item \lstinline{pmax}: $p_{w^+} = 0.5$.
+                        \item \lstinline{pmin}: $p_{w^-} = 0.3$.
+                        \item \lstinline{p0}: $\epsilon = 0.05$.
+                        \item \lstinline{pi}: $p_{\mathrm{e}} = 0.3$.
+                    \end{itemize}
+
+                \item \textbf{Condições Iniciais:}
+                    \begin{itemize}
+                        \item \lstinline{V[N]}: Potenciais iniciais ($V_i$). Escolhemos $V_i = \varphi^{-1}(p_\mathrm{e})$.
+                    \end{itemize}
+            \end{itemize}
+
+        \subsection{Análise de Dados e Métricas}
+            \begin{itemize}
+                \item \textbf{Métricas de Atividade Neural:} Quantidade de disparos no tempo $t$.
+                \item \textbf{Métrica do Potencial de Membrana:}
+                    \begin{itemize}
+                        \item $\bar V$ no tempo $t$.
+                        \item $(V_i)_{i \leq N}$ no tempo $n+1$.
+                        \item $V_i$ máximo e mínimo em toda simulação
+                    \end{itemize}
+            \end{itemize}
+
+    \newpage
+
+    \section{Resultados}
+            \paragraph{}Os resultados a seguir foram obtidos a partir do algoritmo \lstinline{mt19937}, com $seed = 1$ para gerar o Grafo
+            e $seed = 0$ para determinar os disparos.
+
+            \subsection{70 neurônios}
+            \label{SS:3.1}
+                \subsubsection{10 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.55\textwidth]{./G1S0N70/n10/Vm_G1S0N70n10.png}
+                    \caption{$Vm$ por $t$, $N=70$ e $n=10$.}
+                    \label{fig:Vm_G1S0N70n10}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.55\textwidth]{./G1S0N70/n10/Disp_G1S0N70n10.png}
+                    \caption{Disparos por $t$, $N=70$ e $n=10$.}
+                    \label{fig:Disp_G1S0N70n10}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 0 0 -3.7526 0.043125 -4.8699 0 16 0.1 12.858 8 0 3.6375 9.6 5 0.2 0 0 10 0 9 0 -2 0 14 0 8.95 7 11 13.75 4 7.1875 0 7 0 -3 1 0 3 12 0 0 8.655 -0.85 0 14.95 10.65 0 0 -3 0 6 5 0 0 2.0474 0 0 0 5 15.6 5 0 3.983 8 0 20.35 0 11 8 5 
+                        \item $V$ minimo durante a simulação: -11.417
+                        \item $V$ máximo durante a simulação: 26.3
+                    \end{itemize}
+                
+                \newpage
+
+                    
+                \subsubsection{100 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N70/n100/Vm_G1S0N70n100.png}
+                    \caption{$Vm$ por $t$, $N=70$ e $n=100$.}
+                    \label{fig:Vm_G1S0N70n100}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N70/n100/Disp_G1S0N70n100.png}
+                    \caption{Disparos por $t$, $N=70$ e $n=100$.}
+                    \label{fig:Disp_G1S0N70n100}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 5.95 0 1.6374 -4.4227 5.145 0 0 0 0 13.7 3 0 13.8 6.85 0 11 0 6 0.5575 15.51 0 0 9.75 17.65 0 4.1 8.5223 0 4 10.833 0 3 13.75 0 0 -6.4344 7 12.75 8 9.4125 0 -0.49 9 0 4 4 5 2 2 4 4.5269 8 3 0.29012 0 7 5 0 0 0 8.85 3.6951 8.6196 12 12 8 0 0 0 -1 
+                        \item $V$ minimo durante a simulação: -15.194
+                        \item $V$ máximo durante a simulação: 26.3
+                    \end{itemize}
+
+                \newpage
+
+
+                \subsubsection{1000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N70/n1000/Vm_G1S0N70n1000.png}
+                    \caption{$Vm$ por $t$, $N=70$ e $n=1000$.}
+                    \label{fig:Vm_G1S0N70n1000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N70/n1000/Disp_G1S0N70n1000.png}
+                    \caption{Disparos por $t$, $N=70$ e $n=1000$.}
+                    \label{fig:Disp_G1S0N70n1000}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final:5 0 -0.77278 -7.7651 -9.2867 4 0 2.6383 0 0 0 1.2412 0 5 6.3673 13.75 8 0 -0.65191 0 9.75 7.0583 8.75 0 8 4 5.8 17.7 6 3 6 0 3 0 8 1 6 8 16.7 2 0 0 10.7 -1 8 0 0 0 -2 10.6 0 0 5.95 5.4015 0 12.6 7.85 11 8 0 7.465 0 4.05 0 14.75 15 4.9575 4.7 5.7 9.3125 
+                        \item $V$ minimo durante a simulação: -21.654
+                        \item $V$ máximo durante a simulação: 30.962
+                    \end{itemize}
+
+                \newpage
+
+                \subsubsection{5000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N70/n5000/Vm_G1S0N70n5000.png}
+                    \caption{$Vm$ por $t$, $N=70$ e $n=5000$.}
+                    \label{fig:Vm_G1S0N70n5000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N70/n5000/Disp_G1S0N70n5000.png}
+                    \caption{Disparos por $t$, $N=70$ e $n=5000$.}
+                    \label{fig:Disp_G1S0N70n5000}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final:4.8 4 -4.7353 -11.479 -11.878 0 11 0 2.14 0 5.75 -7 8 5 0 0 0 11.462 -1.95 6.75 19.117 1.9559 5 5 0 6.95 2.045 0 4 9.85 5 0 4 15.7 0 -3.8683 10.65 12.94 8 6 8 1.9 4.05 11.75 6 0 6 0 3 3 0 4 3 5.855 1.34 14.5 0 9.65 12.6 10.7 0 1 3.1 0 7.9 6 3.3625 1 6 0 
+                        \item $V$ minimo durante a simulação: -27.519
+                        \item $V$ máximo durante a simulação: 35.2
+                    \end{itemize}
+                    
+                \newpage
+
+        \subsection{100 neurônios}
+        \label{SS:3.2}
+                \subsubsection{10 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n10/Vm_G1S0N100n10.png}
+                    \caption{$Vm$ por $t$, $N=100$ e $n=10$.}
+                    \label{fig:Vm_G1S0N100n10}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n10/Disp_G1S0N100n10.png}
+                    \caption{Disparos por $t$, $N=100$ e $n=10$.}
+                    \label{fig:Disp_G1S0N100n10}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: -2.6012 -17.246 0 0 7.05 0 11 15.752 0 0 13 13 8 0 10 0 13 7.6625 23.5 0 7.75 8 0 19.334 6 0 3 9 8.05 0 0 7 9.8 3 9 6 21.559 0 11 12 0 0 0 21.4 0 8.5225 11 0 17 0 23.45 12.502 0 2 0 0 8 5 0 1 0 0 10.8 0 22.255 10 0 0 13 0 4 27.172 8 0 3 7 7 0 5 0 0 5.2 4 0 16.605 0 18.6 10.7 14.951 0 8 11 12.65 3 11.95 0 0 12 15.55 
+                        \item $V$ minimo durante a simulação: -17.246
+                        \item $V$ máximo durante a simulação: 31.096
+                    \end{itemize}
+                
+                \newpage
+
+                \subsubsection{100 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n100/Vm_G1S0N100n100.png}
+                    \caption{$Vm$ por $t$, $N=100$ e $n=100$.}
+                    \label{fig:Vm_G1S0N100n100}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n100/Disp_G1S0N100n100.png}
+                    \caption{Disparos por $t$, $N=100$ e $n=100$.}
+                    \label{fig:Disp_G1S0N100n100}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: -11.778 -21.382 12 18.45 4.1772 6 21.834 0 1 15 25.45 14.75 6 0 0 0 9 13.649 12 19.767 4 0 14 4 6 7 5.6 0 9 0 12.6 0 0 12.9 5.56 4.8 9.7475 0 0 0 11.1 4 3.65 3 14 11.95 0 6 15.75 7.5075 18.45 0 0 0 10.85 0 0 5 13.55 0 0 9 15.6 0 0 19.5 7.75 0 0 10.992 18.967 18.8 9 0 0 0 9 0 11.9 28.87 5 -1 10 0 -5 0 7 2.9 0 12 18.5 20.505 10 13.8 -4 9 0 17 17.7 
+                        \item $V$ minimo durante a simulação: -35.326
+                        \item $V$ máximo durante a simulação: 35.2
+                    \end{itemize}
+                        
+                \newpage
+
+                \subsubsection{1000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n1000/Vm_G1S0N100n1000.png}
+                    \caption{$Vm$ por $t$, $N=100$ e $n=1000$.}
+                    \label{fig:Vm_G1S0N100n1000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n1000/Disp_G1S0N100n1000.png}
+                    \caption{Disparos por $t$, $N=100$ e $n=1000$.}
+                    \label{fig:Disp_G1S0N100n1000}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: -5.5162 -9.8398 5 0 -2.6273 4 5.9 11.6 9.045 12 0 0 0 0 25.015 14 21.55 9 10 0 10.55 9 0 0 16 0 6 13.8 0 0 16.312 11 0 0 0 0 0 8.9 0 17.5 15.602 6 14.75 0 0 2.7 0 18.902 0 4.555 10.45 13.75 16 5 0 0 17 12.8 11.9 12.05 0 10.7 7 0 0 0 17.373 14 9 7 0 0 0 0 12 10 0 4 9.6174 8 0 1.1 12 27.65 9 27.773 0 6 0 18.5 5 22.4 9 12.75 0 0 20.343 0 0 
+                        \item $V$ minimo durante a simulação: -39.99
+                        \item $V$ máximo durante a simulação: 39.71
+                    \end{itemize}
+
+                \newpage
+
+                \subsubsection{5000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n5000/Vm_G1S0N100n5000.png}
+                    \caption{$Vm$ por $t$, $N=100$ e $n=5000$.}
+                    \label{fig:Vm_G1S0N100n5000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.6\textwidth]{./G1S0N100/n5000/Disp_G1S0N100n5000.png}
+                    \caption{Disparos por $t$, $N=100$ e $n=5000$.}
+                    \label{fig:Disp_G1S0N100n5000}
+                \end{figure}
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 9 -14.989 -20.358 0 34.2 11.847 23.25 12 11.85 0 13 9 10.32 10 13 0 0 10 4 0 21.65 0 0 17.6 -1 0 0 7 0 8.05 21.6 0 6 0 0 0 13.707 4.8 4 0 0 0 16.7 0 0 0 7.5625 19.75 14.55 10 11.85 12 12 10 0 9 0 0 12.75 4 7 4 0 8 4 15.55 7 0 0 0 0 0 0 3 0 7 11 0 9.95 6.9904 0 18.55 6.7 23.5 3 6.15 0 0 10.7 1 0 0 9.65 20.75 7 16 0 0 12 21.4 
+                        \item $V$ minimo durante a simulação: -43.94
+                        \item $V$ máximo durante a simulação: 43.185
+                    \end{itemize}
+                    
+                \newpage
+
+
+        \subsection{300 neurônios}
+        \label{SS:3.3}
+                \subsubsection{10 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n10/Vm_G1S0N300n10.png}
+                    \caption{$Vm$ por $t$, $N=300$ e $n=10$.}
+                    \label{fig:Vm_G1S0N300n10}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n10/Disp_G1S0N300n10.png}
+                    \caption{Disparos por $t$, $N=300$ e $n=10$.}
+                    \label{fig:Disp_G1S0N300n10}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 27.518 28 27.05 0 38.6 33 28 56.653 15 56.145 29 44.75 -4 11 0 17 25 40.25 39.05 19 27 39.15 0 0 60.865 30 0 0 0 24.75 38 0 0 35 0 0 67.041 0 51.8 34 0 0 0 0 24.55 0 11 12.4 50.95 0 46 30.087 21 51.216 57.17 0 0 26 15 0 0 18 0 29 33.285 22 33 27.5 0 0.6 0 0 0 0 44 16 22 0 24 29.4 58.095 0 0 36.4 30.95 0 40.219 0 0 0 0 0 29.65 31.45 0 27 12 0 23 0 43.8 0 25 51.435 35.8 59.252 0 26.05 25 39.05 23 35.1 23 42 0 41.65 40.4 0 50.6 73.495 57.6 46.9 0 17 15 45.4 0 0 20 61.528 0 65.525 42.35 0 0 0 0 0 25 46.1 52.55 7 0 30 54.75 41.43 0 0 28.4 44.55 47.8 14 0 0 2 0 27.45 43.745 0 19 0 0 18 11 40.25 0 26.65 11 6 0 27 22.4 0 46.572 31.3 0 32 17 15 9 27.1 0 0 21 60 0 0 0 0 24 34 24 30.45 16 31.95 33.83 0 18 0 16 38.35 51.2 0 41.9 0 21 25.1 53.131 0 2 23 0 23.9 41.9 26 0 0 0 38 0 18 0 0 19 0 5 0 23 23 44.811 4 0 0 50.95 23.5 56.438 17 9 67.857 26.2 48.8 0 18 25 47.65 57.849 15 26 40.25 0 31.55 69.615 37.85 82.927 18 0 44.1 25 18 0 0 31 15 47.453 0 0 0 0 44.8 0 57.4 0 23 38 0 52.183 0 12.75 27 0 0 44.65 0 0 19 34 21 28 23 23 0 0 68.192 0 4 0 15 24 13 34 
+                        \item $V$ minimo durante a simulação: -12
+                        \item $V$ máximo durante a simulação: 87.064
+                    \end{itemize}
+
+                \subsubsection{100 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n100/Vm_G1S0N300n100.png}
+                    \caption{$Vm$ por $t$, $N=300$ e $n=100$.}
+                    \label{fig:Vm_G1S0N300n100}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n100/Disp_G1S0N300n100.png}
+                    \caption{Disparos por $t$, $N=300$ e $n=100$.}
+                    \label{fig:Disp_G1S0N300n100}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: -1 35 0 33 59.689 34 23 58.942 19 0 61.05 38.2 35.8 29 45.75 28.95 26 26 56.555 36.2 28 31.5 0 18.6 29 20 10 42.15 0 0 10 41.1 24 55.4 20 58.65 0 44.2 0 47.15 42.883 20.55 0 46.44 31.1 13 35 49.442 0 0 27 15 46.7 33.832 39.05 0 30.9 17 22 20 0 0 0 26 35.472 0 0 11 13 23.899 20 22 13 46.053 0 29.15 31.45 0 0 0 0 0 25 55.05 33 45.35 0 0 0 26 0 0 53.8 25.8 74.55 1 31.1 35 36.442 15 10 0 70.514 59.062 0 0 0 0 21 22 0 0 24 54.015 34.497 33.55 28.95 6 46.35 0 0 27 0 11 22.3 12 0 0 18 16 11 0 0 0 0 0 3 45.9 0 45.65 60.5 0 0 30 28 26.45 23.85 54.8 42.46 27 32 0 29 45.05 0 19 8 0 56.5 10 56.053 12 46.045 37.422 0 33 21.65 0 43.95 9 64.987 20.1 0 0 59.928 56.5 30.06 0 50.08 14 22 0 0 31.5 24 42.497 0 45 44.95 45.7 14 62.69 0 0 0 0 26 0 0 32.9 26 38.55 37.95 5 38.45 0 21.65 65.182 0 0 45.95 0 21 10 0 25.35 0 0 0 0 12 33 28.15 18 0 7 68.305 43.25 26 0 29.55 0 0 0 0 0 0 39.05 41.6 41.35 0 14 43.3 0 23 24.65 38.1 24.9 21 27.4 51.95 0 36.25 18 16 27 0 22 0 0 14 27 17 0 0 35 0 0 0 14.36 0 20 30.7 13 0 36 34.75 12 0 36.417 0 29 8 12 36.35 0 0 31 68.75 20 0 31 0 0 16 29.245 34.5 0 19.25 0 
+                        \item $V$ minimo durante a simulação: -12
+                        \item $V$ máximo durante a simulação: 99.075
+                    \end{itemize}
+                        
+                \newpage
+
+                \subsubsection{1000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n1000/Vm_G1S0N300n1000.png}
+                    \caption{$Vm$ por $t$, $N=300$ e $n=1000$.}
+                    \label{fig:Vm_G1S0N300n1000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n1000/Disp_G1S0N300n1000.png}
+                    \caption{Disparos por $t$, $N=300$ e $n=1000$.}
+                    \label{fig:Disp_G1S0N300n1000}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 21 0 35 20 0 23 27 0 0 0 0 52.47 36.68 0 53.3 0 0 53.25 23 43.9 0 0 27 39 41.4 38.85 0 0 28 11 0 48.5 0 68.35 0 52.75 51.038 0 0 59.4 0 17 28 0 17 25.95 0 0 0 74.686 37 32.587 38.5 16 0 0 0 44.513 0 47.05 20 20 0 0 0 41.9 0 18 0 0 44.1 0 0 53.5 27 0 0 44 47.05 35.2 38.95 77.222 19.5 0 22 0 0 36 0 28 17 6 0 0 42 0 0 34 42.468 11 47.7 29.3 0 0 0 50.41 19 49.835 27 68.748 0 0 43 0 0 43.9 24 41.65 20 0 32 0 59.05 23 25.35 0 37.035 57.15 54.597 50.85 55.845 43.05 0 0 32 21 40.2 0 0 38.95 32 5 0 63.85 34 0 0 69.4 0 26 45.3 37.79 54.95 0 25 55.39 0 0 0 0 0 33 59.335 6 36.95 56.5 0 25 17 19.25 0 34.978 67.95 0 24 0 32 0 0 0 0 0 27 0 0 0 28 0 38 35 31 0 0 59.203 0 30.6 47.1 0 36 54.95 0 0 36.95 0 26 0 15 41.515 16 31 0 0 28.4 30.85 44.85 0 38.85 23 0 36 20 69.205 27.45 44.25 17 58.5 31 0 20 16 0 0 26 39 0 0 0 47.35 13 26 0 32.3 28 26 35 0 22 28 19 41.6 30 0 35.25 66.715 0 56.65 11 0 0 43.35 52.35 0 40.742 43.792 24 0 17 19 0 7 25 37.9 0 0 0 0 0 21.65 18 44.81 0 0 11 0 48.3 0 0 36 25 0 0 31 27 0 0 34.962 0 0 8 0 
+                        \item $V$ minimo durante a simulação: -15
+                        \item $V$ máximo durante a simulação: 116.03
+                    \end{itemize}
+
+                \subsubsection{5000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n5000/Vm_G1S0N300n5000.png}
+                    \caption{$Vm$ por $t$, $N=300$ e $n=5000$.}
+                    \label{fig:Vm_G1S0N300n5000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N300/n5000/Disp_G1S0N300n5000.png}
+                    \caption{Disparos por $t$, $N=300$ e $n=5000$.}
+                    \label{fig:Disp_G1S0N300n5000}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 0 46.35 16 0 0 0 0 0 30 27 0 22 14.45 0 39.55 25 37.2 42.85 47.4 23 0 0 0 45.85 41.8 23 13 35.25 0 19 19 43.15 0 0 33.05 29 44 75.9 26 26 13 9 71.578 50.9 21 19.4 43 39.35 17 18.65 24 32.526 23 25.25 18.45 0 48.95 31.45 8 33.8 0 17 24 52.55 14 0 28 42.155 0 0 12 0 33.3 56.782 0 26.9 0 0 0 17 36.1 31.15 39.8 0 39 46.9 20 34.1 0 0 21.8 33.65 62.112 18 0 51.55 26.35 0 29.765 0 51.772 35.815 0 36.35 28.15 0 13 0 52.79 26 47.755 58.575 42.15 44.95 42.507 0 34 48.35 24 0 34 21 50.95 13 25.5 0 26.657 47.8 6 45.8 0 23 0 0 47.5 51.092 19 10 35.3 30.85 0 15 0 21 54 21 15 26 0 30.4 33 15 0 0 60.041 0 37.6 17 30 0 16 5 27 0 30.95 23 0 0 11 25 25 0 0 19 25 35.05 0 32 0 10 2 23 0 14 17 0 0 16 45.85 0 0 0 37.8 0 0 18 15 0 3 51.3 0 45.95 38.55 0 35 0 45.898 0 19 36.25 33.95 13 39.25 0 0 0 33.15 55.59 0 30 40.9 25 37.5 0 0 0 29.85 0 50.3 34.787 13 0 59.7 15 34.4 40.2 51.572 0 28.45 8 29 12 32 15 56.05 21 0 0 29 0 18 13 22.4 0 13 56.3 0 24 58.265 49.95 0 52 14 0 0 59.75 23.3 8 0 22 0 41 56.166 57.41 24.85 29.15 20 0 0 0 9 23 6 0 47.05 29 0 52.75 0 46.9 0 34 0 30 12.6 0 40.7 0 0 25 
+                        \item $V$ minimo durante a simulação: -21
+                        \item $V$ máximo durante a simulação: 116.87
+                    \end{itemize}
+                    
+                \newpage
+
+        \subsection{800 neurônios}
+        \label{SS:3.4}
+                \subsubsection{10 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n10/Vm_G1S0N800n10.png}
+                    \caption{$Vm$ por $t$, $N=800$ e $n=10$.}
+                    \label{fig:Vm_G1S0N800n10}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n10/Disp_G1S0N800n10.png}
+                    \caption{Disparos por $t$, $N=800$ e $n=10$.}
+                    \label{fig:Disp_G1S0N800n10}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 23 0 0 0 44 131.3 46 0 137.35 77 0 0 119.4 121.6 67 41 62 0 75 47 0 58 99.6 0 60 0 0 145.9 102.85 44 131 0 0 56 44 88 0 0 162.07 0 52 0 84.15 182.54 0 0 55 50 110.6 61 77 0 107.35 0 0 67 66 103.95 16 59 106.1 0 0 0 120.05 43 38 0 0 47 128.7 45 103.05 48 0 59 0 0 0 0 0 53 139.65 0 0 63 0 67 117.5 127.05 121.1 0 91.1 49 121.45 0 96.9 0 45 126.7 82.65 124.3 0 0 106.25 0 39 0 0 76 75.8 78.3 153.06 73.95 0 54 51 71 191.15 0 0 88.4 78 0 85.25 0 82 103.65 0 148.6 67 107.5 0 87.05 0 56 49 115.45 42 99.45 37 0 0 123.85 80.4 0 118.75 0 71 0 36 120.6 83.6 51 111.35 104.4 0 118.6 0 0 186.78 58.1 175.63 0 121.25 63 61 53 0 137.25 0 0 53 0 0 122.1 55 64 0 71 163.15 0 58 53 0 144.6 0 60 113.9 132.85 0 101.8 0 177.64 97.2 51 0 0 0 0 0 63 67 0 160.47 58 0 62 40 0 103.3 147.3 0 108.65 0 0 0 0 54 99.75 51 101.8 122.45 93.1 0 0 0 39 0 120.75 47 0 59 79.95 184.12 75 0 21 45 0 164.79 0 0 72 42 139.95 106.2 0 83.35 0 102.15 62 116.45 100.05 0 90 22 0 0 69 28 113.15 58 0 74 39 44 0 67 0 74.4 0 108.8 43 109.05 96.4 123.35 0 112.05 41 108.4 60 0 78 0 135.45 68 55 0 0 130.5 0 138.78 30 87.95 106.6 38 84.05 0 102.35 0 0 0 38 0 0 67 51 0 0 36 49 74 119.25 98 66 70 34 63 67 125.15 113.35 0 0 62 117.75 89 0 119.15 141.6 126.95 88.8 153.8 113.75 48 61 109.3 0 43 39 0 0 136.95 0 47 0 0 27 0 69 66 0 0 161.35 79 0 89.6 60 0 84 0 0 127.2 48 118 0 107.45 175.58 0 97.65 128.05 60 117.6 123.8 72 71 0 37 0 0 0 53 51 58 0 0 98.55 39 31 0 179.94 0 0 0 86.95 46 101.65 199.48 138.55 42 125.15 118.05 0 52 0 0 45 0 102.05 56 120.65 60 0 36 59 65 0 0 102.35 0 0 50 0 43 69 77 0 78 0 0 118.75 115.8 76.15 62 107.25 111.6 57 114.8 39 0 0 0 0 33 68 0 105.25 57 0 54 0 149.65 106.35 0 0 59 42 61 82 114.55 0 0 69 54 52 0 55 0 0 69 35 0 127.3 89.4 48 124.75 0 71 0 0 99.35 133.16 55 46 130.05 144.71 0 99.7 68.9 85.8 0 67 71.15 0 0 88.9 36 65 50 125.1 0 0 63 0 161.41 54 23 59 0 77 111.2 30 48 66 0 82.6 54 0 103.8 107.1 130.4 0 95.85 52 104.05 49 0 30 80 51 58 90.9 115.4 117.1 0 192.26 0 0 112.5 107.25 0 67 0 66 59 0 0 160.7 64 141.45 0 57 49 130.9 156.4 169.59 0 0 48 0 0 54 164.54 0 48 57 111.95 57 60 75 44 0 0 98.75 0 37 59 42 99.7 105.45 0 67 136.95 0 39 125.16 0 38 41 27 29 89.2 117.1 50 43 55 44 64 41 100.25 0 77 84.75 112.65 55 0 0 127.9 171.37 87.25 32 0 126.9 99.9 110.05 79.5 74 0 147.23 86.8 102.9 150.7 116.95 0 0 66 82 0 71.25 104.6 48 47 0 0 102.1 52 115.7 148.6 133.5 0 122.65 94.35 171.75 61 0 46 116.42 0 0 0 0 0 0 106.1 111.15 0 108.95 129.25 38 57 57 42 0 51 105.3 44 131.65 54 56 0 0 0 65 67 165 55 0 51 62 0 0 48 67 97.6 72 64 0 38 48 110.5 0 40 0 70 0 78 74 129.45 108.2 0 0 47 109.2 61 77 60 113.2 0 68 55 132.94 0 194.37 36 52 60 0 0 49 63 0 0 0 122.3 55 0 66 63 81.7 52 73 38 117.05 148.59 0 59 59 24 121.45 47 0 47 40 0 153.8 0 0 55 166.1 71.55 52 133.5 0 54 0 140.8 126.05 45 0 0 186.52 110.45 156.63 96.1 125.8 97.1 110.8 101.65 0 51 0 90.15 77 0 0 117.8 112.35 0 85.95 0 54 0 0 133.35 0 40 0 0 0 120.7 0 0 95.9 115.05 0 0 121.25 0 164.87 0 
+                        \item $V$ minimo durante a simulação: 0
+                        \item $V$ máximo durante a simulação: 243.09
+                    \end{itemize}
+
+                \newpage
+
+                \subsubsection{100 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n100/Vm_G1S0N800n100.png}
+                    \caption{$Vm$ por $t$, $N=800$ e $n=100$.}
+                    \label{fig:Vm_G1S0N800n100}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n100/Disp_G1S0N800n100.png}
+                    \caption{Disparos por $t$, $N=800$ e $n=100$.}
+                    \label{fig:Disp_G1S0N800n100}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 79.5 0 135.15 0 99.85 0 56 0 0 102.05 27 56 70 0 68 170.68 28 58 64 0 0 70 46 113.3 0 0 0 75 75 0 0 0 114.9 96 0 136.25 72 0 41 0 54 98.6 0 0 0 158.85 55 104.3 91.6 111.35 61 0 0 0 56 123.8 82 0 0 115.75 48 0 99.45 50 63 0 144.4 0 221.4 0 54 0 51 0 0 0 52 0 45 142.37 150.43 0 0 137.35 135.01 51 0 129.2 94.5 101.2 0 0 113.85 77 0 63 0 0 162.16 68 87.4 135.1 0 0 49 0 120.4 0 0 0 73.05 117.4 173.88 18 61 158.3 45 0 124.75 68 129.85 96.75 58 0 0 0 0 0 0 74 0 45 0 41 59 71 40 97.3 115.75 172.54 63 0 145 0 13 60 0 121.35 135.1 77 0 0 43 113.5 136.25 107.05 44 201.1 0 48 0 48 68 120.1 47 66 68 0 0 0 0 0 0 0 0 0 0 145.7 96.9 0 0 136 67 62 58 0 29 62.5 138.1 127.1 0 0 0 46 0 103.9 48 111.1 53 89 76 61 0 149.95 53 63 43 61 0 0 106.9 0 0 91.8 76 57 54 117.65 50 122.2 0 79.55 35 0 0 77 128.05 68 72 0 102.4 64 59 0 62 0 75 0 0 144.6 105.5 87 67 0 0 0 0 0 106.25 66 121 103.79 77 0 18 78 46 0 51 61 125.9 58 58 0 66 94.55 0 0 53 0 0 0 100.4 56 174.35 94.85 0 132.05 48 110.49 113.5 0 0 0 78 38 0 145.25 138.9 114.8 87 65 56 89.75 57 0 0 107.7 133.7 61 114.2 161.6 43 54 37 120.85 38 184.9 0 83.45 0 0 0 58 0 58 0 50 76 131.56 0 113 132.2 135.2 56 69 97.8 90.85 0 0 0 0 59 104.9 117.15 95.75 0 0 155.81 0 0 34 83 39 48 54 101.65 149.53 0 0 65 0 94.25 0 0 0 0 65 0 82 101.95 94.3 64 17 0 0 67 60 63 0 0 109.65 65 0 50 0 69 53 37 67 44 0 0 0 49 57 0 53 45 66 63 53 203.2 0 0 42 0 70 75.4 0 43 0 72 65 138.01 0 0 51 79 125 0 59 0 80.9 126.9 68 74 67.45 0 120.55 205.81 0 46 104.3 0 69 118.6 0 103.55 47 0 152.18 46 72 40 0 66 118.35 106.95 52 94.75 66 108 0 0 0 126.25 67 51 90.75 68 0 180.09 117.65 0 0 0 0 0 117.25 113.05 67 49 42 170.59 69 72 0 123.55 50 107 41 0 97.7 0 118.9 0 40 0 48 83.3 59 107.5 87.9 0 60 84 55 108.79 56 0 0 167.93 47 44 48 107.78 0 0 25 68 57 135.3 133.2 86.1 0 84.15 0 63 45 88.05 0 69 0 175.2 63 65 38 71 0 0 81 102.75 97 0 76 141.25 0 57 101.75 122.35 80 65 0 0 65 69 0 86.35 92.6 109.85 47 118.05 150.7 0 135.66 0 0 66 0 0 56 0 77 0 0 80 56 0 0 0 85.3 130.65 62 0 87 115.65 77 44 0 96.15 0 0 0 57 0 0 0 75.25 109.8 0 155.12 46 58 61 0 70 128.2 78 110.25 48 0 122.75 48 29 129.65 109.3 133.65 74 40 0 81 51 76.95 78 0 217.32 0 38 0 38 0 91 46 0 0 106.9 73 0 25 0 139.25 60 65 69 0 0 0 60 70 146.7 45 0 0 94.3 0 158.56 53 131.55 73 40 38 0 0 43 0 49 123.65 0 106.3 109.55 0 51 104.15 69 71 60 0 29 100.05 128.7 43 45 39 0 69 61 0 0 74 126.85 163.37 144.55 0 70 113.15 0 103.35 71 59 115.1 0 133.9 59 53 0 116.3 116.55 0 166.79 0 59 0 100.15 50 45 131.33 56 0 72.35 78.75 0 116.2 0 0 0 125.5 112.1 0 110.25 0 192.06 0 59 132.35 0 0 36 128.7 79 0 150.57 0 0 129.3 138.95 0 0 110 26 0 98.75 0 114.1 51 42 129.1 0 0 110.1 0 71 53 0 83 0 52 0 85 79.1 111.25 59 70 61 53 0 0 0 126.95 0 66 60 0 43 0 65 108.95 51 0 84.15 88.05 116.4 132.7 0 68 52 119.55 0 72 121.4 120.15 179.31 0 64 0 0 0 0 96.8 156.6 118.49 68 112.35 45 0 0 204.69 0 105.1 108.15 
+                        \item $V$ minimo durante a simulação: 0
+                        \item $V$ máximo durante a simulação: 256
+                    \end{itemize}
+                        
+                \newpage
+
+                \subsubsection{1000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n1000/Vm_G1S0N800n1000.png}
+                    \caption{$Vm$ por $t$, $N=800$ e $n=1000$.}
+                    \label{fig:Vm_G1S0N800n1000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n1000/Disp_G1S0N800n1000.png}
+                    \caption{Disparos por $t$, $N=800$ e $n=1000$.}
+                    \label{fig:Disp_G1S0N800n1000}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 98.7 0 0 0 94.5 66 119.1 125.9 54 0 0 132.7 0 72 0 45 96.3 99.7 0 0 0 0 122.2 114.9 80 41 144.43 61 0 0 127.75 0 54 0 153.86 0 0 25 54 167.5 34 46 0 0 0 77 54 108.1 57 101.3 59 37 0 45 0 172.38 43 99.45 0 119.05 121.55 0 46 169.16 0 123.5 0 45 121.95 0 46 0 0 0 90.9 47 65 0 93.6 168 0 0 0 64 101.7 53 0 0 0 58 115.85 0 41 53 119.9 0 0 0 60 65 90.35 173.52 0 45 0 54 0 114.4 134.15 0 0 0 143.59 0 0 64 0 49 0 64 136.1 0 0 46 96.9 113.8 0 0 0 0 62 47 143.45 41 73 76 0 0 50 0 0 65 75 0 0 0 62 0 62 147.5 90.05 0 65 84.4 172.14 0 102.7 55 130.35 57 0 87.9 0 88.75 113.2 113.1 0 73 58 60 92.6 0 42 58 77 125.55 0 65 59 103.2 0 57 0 0 63 60 0 123.52 0 54 110.6 146.5 0 103.95 0 57 64 63 44 201.84 0 69 63 74 0 46 86.75 203.06 121.2 72 34 80 143.05 42 104.5 0 148.34 0 67 53 0 0 0 94.4 174.21 0 0 0 188.65 111.95 139.49 127.9 68 63 0 82 62 93.2 72 129.9 71 62 0 144 35 0 116.2 55 53 0 0 75 135.9 79.1 42 74 0 81.85 60 0 0 0 64 164.24 0 0 44 63 75 152.76 118.61 0 106 53 0 160.31 0 0 39 82.55 70 0 67 53 70 0 59 123.15 61 99.8 115.1 42 0 31 128.85 126.35 93.15 113.35 66 0 109.65 0 84.05 0 121.75 0 0 45 58 149.52 0 0 190.6 58 32 51 131.85 0 0 52 108.85 48 147.6 0 130.75 0 86.95 79 0 0 147.35 40 0 0 110.65 52 115.75 143.8 0 65 57 90.3 61 0 0 0 0 0 0 68 0 0 84.35 163.75 124.65 0 157.89 0 0 0 0 0 50 62 47 0 0 107.35 0 55 70 148.45 52 39 51 64 0 0 100.7 0 0 119.05 90 61 67 77 137.73 61 84.6 72 67 38 77 61 148.38 22 97 120.95 0 0 0 0 0 60 59 46 0 128.65 0 107 147.74 82 51 0 46 0 71 75.95 0 0 0 0 41 93.5 64 0 60 76 58 0 139.45 0 49 85 60 55 0 57 158.16 83 70 67 50 59 96.95 41 99.35 50 44 116.5 139.6 0 91.45 108.55 110.23 57 0 0 69 67 122.3 58 54 0 108.2 60 0 112.4 0 37 88.5 35 52 0 58 132.7 56 0 47 120.75 0 0 0 42 51 46 0 47 69.1 0 0 69 96.4 0 76 0 81.9 0 159.18 0 86 52 129.4 149.55 48 114.9 65 72 0 79 128 34 99.2 65 92 0 0 0 75 167.65 0 0 101.1 128.15 119.2 53 53 0 87 0 0 0 0 77 0 80 114.4 92 103.9 0 72 0 74 75 99.9 86.1 0 140.5 0 164.6 0 0 0 0 132.6 0 113.7 0 67 43 62 0 0 123.2 151.72 69 58 120.3 56 0 120.25 127.25 138 116 211.63 0 124.05 61 0 31 77.8 0 0 123.9 0 137.27 0 188.96 0 86.9 0 0 112.25 0 34 76 21 0 87 87.85 82.75 0 0 61 0 0 0 0 91 0 121.03 53 0 103.9 117.15 56 0 101.35 0 123.7 138.08 59 169.65 61 68 83.3 0 0 90.85 0 0 0 108.8 117.19 0 78 85 150.85 0 187.35 58 97.25 63 149.64 83.1 61 30 73 0 0 0 190.63 0 157.06 59 0 112.25 74 51 66 0 101.5 61.15 108.4 0 47 127.1 0 0 65 0 89.15 0 139.1 159.51 82.85 0 58 0 0 121.8 0 47 30 102.25 139.7 0 70 45 119.55 0 52 56 113.4 0 60 59 76 53 109.53 44 59 99 73 0 60 69 55 68 127.85 0 65 77 117.15 0 60 0 0 122.35 120.6 87.05 112 96.4 0 101.6 0 142.2 0 52 92.35 147.75 67.5 0 0 71.2 0 0 22 58 70 74 139.75 0 0 58 85 77 112.25 0 157.78 57 0 70 0 0 77 51 53 0 56 143.05 61 59 42 112.6 45 0 120.75 58 0 0 0 0 0 149.35 133.65 45 55 66 102 0 0 103.15 53 0 75.45 0 0 0 0 76.45 113.45 0 0 71 107.15 136.5 0 0 102.65 
+                        \item $V$ minimo durante a simulação: -12
+                        \item $V$ máximo durante a simulação: 291.85
+                    \end{itemize}
+
+                \newpage
+
+                \subsubsection{5000 interações}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n5000/Vm_G1S0N800n5000.png}
+                    \caption{$Vm$ por $t$, $N=800$ e $n=5000$.}
+                    \label{fig:Vm_G1S0N800n5000}
+                \end{figure}
+
+                \begin{figure}[h!]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{./G1S0N800/n5000/Disp_G1S0N800n5000.png}
+                    \caption{Disparos por $t$, $N=800$ e $n=5000$.}
+                    \label{fig:Disp_G1S0N800n5000}
+                \end{figure}
+
+                \newpage
+
+                \paragraph{Potenciais Finais:}
+                    \begin{itemize}
+                        \item $V$'s final: 0 79 141.3 0 64 52 0 0 72 55 73 0 63 0 0 59 0 0 0 0 48 45 0 143.8 0 94.05 76.45 73 0 88.65 0 0 0 0 0 0 101.75 101.9 94.45 45 0 122.15 0 31 0 83 107.75 44 47 0 65 83.6 0 0 0 77 0 65 0 144.2 56 95.45 0 60 0 128.31 0 55 0 0 0 73 50 0 0 0 0 68.3 0 0 63 149.4 0 0 51 169.16 0 0 101.3 117.35 0 136 106.15 0 0 52 125.35 0 130.45 116.6 104.33 0 90.65 109.35 42 58 129.15 134.1 0 72 0 118.55 98 44 130.25 0 0 36 127.35 0 50 0 66 0 0 115.55 132.4 42 151.45 0 113.85 126.65 0 59 167.48 82 0 0 62 0 119.5 0 0 0 0 43 0 0 83 0 52 0 65 44 125.35 100.9 47 0 0 0 0 0 0 116.15 0 70 75 63 0 120.25 0 140 121.75 0 79 0 67 0 123.15 68 76 0 91 112.15 56 0 83.05 128.64 62 0 73 86 123.95 72 0 148.72 115.6 58 0 135.3 79 134.4 0 0 99.5 0 107.3 0 0 65 56 0 78 36 117.25 125.55 0 0 59 0 0 101.4 0 164.03 0 58 135.55 0 135.6 125.65 108.6 0 0 142.44 0 0 157.1 99 0 147.6 0 194.87 179.44 0 67 58 0 0 42 152.65 74 0 0 39 118 61 41 45 0 37 70 205.88 135.2 0 0 77 152.61 0 0 66 0 0 112.5 0 0 51 0 73 110.05 39 0 137.76 0 66 91 0 140.15 0 0 68 119.45 117.3 0 44 0 0 30 116.65 64 51 60 108.5 0 0 92.25 118.1 61 65 45 0 111.35 54 86 74 93.95 0 0 0 72 42 72 41 70 83 53 0 142.57 98.05 101.1 107.65 205.76 63 0 0 132.15 46 64 132.2 0 132.35 63 148.8 198.05 132.7 77 71 0 51 55 0 0 0 50 0 0 0 54 122.6 161.6 0 0 43 0 0 55 76 0 60 50 165.12 75 0 0 0 65 37 125.7 67 46 0 0 136.15 0 131.45 142.5 62 53 0 54 70 0 79.9 0 134 120.75 94.1 0 69 111.19 47 64 165.49 123.15 0 48 33 0 0 73 0 0 0 52 37 66 128.65 75 0 113.6 173.68 95 0 27 130.85 134.95 74 0 49 131.25 60 0 0 27 0 105.7 0 78 116.7 47 0 0 66 80 54 99.9 60 69 0 0 0 0 0 32 75 0 72 57 0 162.7 54 0 0 131.18 104.3 0 0 0 112.2 74 171.58 54 174.97 121.5 0 167.01 203.98 183.7 116.4 36 45 102.15 35 39 133.27 0 52 75 207.37 90.65 0 190.28 52 48 58 0 83 41 0 0 45 133.6 151.37 0 0 0 137.45 61 76 58 0 60 73 64 54 0 138.45 94 48 176.51 110.3 81 136.45 130.75 73 54 55 139.8 52 90 41 62 0 0 0 52 0 115.85 79 143.86 100.95 114.15 124.05 43 0 0 0 0 0 67 0 63 49 0 63 0 100 0 68 65 57 62 0 113.95 63 65 0 72 124.95 44 67 108.65 152.13 75 0 167.5 133.75 0 0 0 0 0 0 0 0 52 0 92 122.05 0 52 0 81 58 167.31 34 0 101.55 67 0 0 75.8 66 54 0 0 81 90.95 62 109.65 0 169.97 82 0 56 65 46 0 119.35 0 70.75 97.75 0 78 0 0 158.05 63 0 66 65 138.3 47 109.2 39 0 69 127.35 82 0 42 0 105.45 169.65 84 0 0 38 71 0 0 187.94 81 160.56 123.9 67 0 0 75 48 53 0 99.9 51 0 0 49 147.95 0 0 0 0 0 133.55 0 118.1 35 0 82.2 86 0 115.25 71 0 0 100.2 137.45 120.85 82 0 106.75 78 124.55 0 177.88 65 0 59 82 0 82.4 131.86 0 0 0 50 54 72 0 77 0 0 0 142.9 0 70 0 67 61 0 135.6 0 58 67 0 0 0 81 63 0 74 64 88.9 125.3 61 0 132.05 69 0 54 124.35 0 59 0 140.85 174.5 0 0 191.98 0 0 47 84 90 0 44 147.2 74 52 0 61 0 54 50 100.35 0 0 61 0 139.95 0 64 74 0 0 69 0 61 0 50 161.41 56 0 79.35 84 0 23 58 63 0 73 97.6 0 116.8 0 129.35 60 202.32 109 0 62 
+                        \item $V$ minimo durante a simulação: -12
+                        \item $V$ máximo durante a simulação: 299.24
+                    \end{itemize}
+                    
+                \newpage
+
+    \section{Discussão}
+        \subsection{800 neurônios}
+        \paragraph{}Podemos perceber que, a partir das Figuras da subseção \ref{SS:3.4}, o potencial médio
+        e a quantidade de disparos estabilizaram nas primeiras interações e se mantiveram até $t = 5000$ quando
+        a quantidade de neurônios era $800$.
+        \paragraph{}Os disparos estabilizaram-se em torno de $290$, valor não tão distante do $800 \cdot p_\mathrm{e} = 240$.
+        \paragraph{}O potencial médio estabilizou-se em torno de $55$, valor não tão distante do $\varphi^-1(p_\mathrm{e}) \approx 55.85$.
+
+        \subsection{300 neurônios}
+        \paragraph{}Podemos perceber que, a partir das Figuras da subseção \ref{SS:3.3}, o potencial médio
+        e a quantidade de disparos estabilizaram nas primeiras interações e se mantiveram até $t = 5000$ quando
+        a quantidade de neurônios era $300$.
+        \paragraph{}Os disparos estabilizaram-se em torno de $110$, valor não tão distante do $300 \cdot p_\mathrm{e} = 90$.
+        \paragraph{}O potencial médio estabilizou-se em torno de $20$, valor não tão distante do $\varphi^-1(p_\mathrm{e}) \approx 20.9$.
+
+        \subsection{100 neurônios}
+        \paragraph{}Podemos perceber que, a partir das Figuras da subseção \ref{SS:3.2}, o potencial médio
+        e a quantidade de disparos estabilizaram nas primeiras interações e se mantiveram até $t = 5000$ quando
+        a quantidade de neurônios era $100$.
+        \paragraph{}Os disparos estabilizaram-se em torno de $37$, valor não tão distante do $100 \cdot p_\mathrm{e} = 30$.
+        \paragraph{}O potencial médio estabilizou-se em torno de $6.5$, valor não tão distante do $\varphi^-1(p_\mathrm{e}) \approx 6.9$.
+
+        \subsection{70 neurônios}
+        \paragraph{}Podemos perceber que, a partir das Figuras da subseção \ref{SS:3.1}, o potencial médio
+        e a quantidade de disparos estabilizaram  nas primeiras interações e se mantiveram até $t = 5000$ quando
+        a quantidade de neurônios era $70$.
+        \paragraph{}Os disparos estabilizaram-se em torno de $23$, valor não tão distante do $70 \cdot p_\mathrm{e} = 21$.
+        \paragraph{}O potencial médio estabilizou-se em torno de $4$, valor não tão distante do $\varphi^-1(p_\mathrm{e}) \approx 4.8$.
+        
+        \subsection{Conclusão}
+        \paragraph{}Nota-se que a fórmula de $\varphi$ encontrada satisfaz os intuitos iniciais.
+
+
+\end{document}

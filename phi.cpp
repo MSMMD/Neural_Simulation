@@ -1,6 +1,6 @@
 #include "phi.hpp"
 
-double a = (pmax-pmin)*(N-1)*p0/pi;
+double a = (pmax-pmin)*(N-1);//*p0/pi;
 double b = std::log(1/p0 - 1);
 
 double phi(double V){
