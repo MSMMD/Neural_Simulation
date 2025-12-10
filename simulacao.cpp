@@ -11,7 +11,7 @@ const int N = 800;
 const double rho = 0.95;
 double V[N];
 
-double k = 8;
+double k = 0.2;
 
 const double pmax = 0.2;
 const double pmin = 0.05;
@@ -30,7 +30,6 @@ int main(){
     
     double V_inicial = Iphi(pi, k);
     for(int i=0; i<N; i++) V[i] = V_inicial;
-    double vmax=V_inicial, vmin=V_inicial;
     
     cout.precision(5);
     
@@ -40,7 +39,8 @@ int main(){
     ofstream data_Vm("./output/plot_Vm.dat");
     data_Vm << "# Tempo\tPotencial\n";
     
-    while(k>0){
+    while(k<=20){
+        double vmax=V_inicial, vmin=V_inicial;
         double MVm = 0;
         long long Tot_MVm = 0;
 
@@ -90,7 +90,7 @@ int main(){
         data_Vm << k << "\t" << MVm << "\n";
         data_pm << k << "\t" << phi(MVm/Tot_MVm, k) << "\n";
     
-        k-= 0.2;
+        k+= 0.2;
     }
     
     data_pm.close();
