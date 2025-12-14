@@ -39,7 +39,7 @@ int main(){
     ofstream data_Vm("./output/plot_Vm.dat");
     data_Vm << "# Tempo\tPotencial\n";
     
-    while(k<=20){
+    while(k<=28){
         double vmax=V_inicial, vmin=V_inicial;
         double MVm = 0;
         long long Tot_MVm = 0;
