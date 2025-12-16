@@ -1,11 +1,11 @@
 #include "phi.hpp"
 
-double a = (pmax-pmin)*(N-1);//*p0/pi;
+double a = (pmax-pmin)*(N-1)*p0/pi;
 double b = std::log(1/p0 - 1);
 
-double phi(double V, double k){
+double phi(double V){
     double f = V;
-    f /= a/k;
+    f /= a;
     f -= b;
 
     double g = 1 + std::pow(M_E, -f);
@@ -17,13 +17,13 @@ double phi(double V, double k){
     return g;
 }
 
-double Iphi(double p, double k){
+double Iphi(double p){
     double g = 1/p;
     g -= 1;
     
     double f = -std::log(g);
     f += b;
-    f *= a/k;
+    f *= a;
 
     return f;
 }
