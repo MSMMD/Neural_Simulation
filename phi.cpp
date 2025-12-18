@@ -11,16 +11,16 @@ double phi(double V){
     double g = 1 + std::pow(M_E, -f);
     g = 1/g;
 
-    //g-= p0;
+    g-= p0;
 
-    //double h = atan(f)/Pi + 0.5;
     return g;
 }
 
 double Iphi(double p){
     double g = 1/p;
     g -= 1;
-    
+    g+= p0;
+
     double f = -std::log(g);
     f += b;
     f *= a;
