@@ -8,7 +8,7 @@ using namespace std;
 
 const int n = 300;
 const int N = 300;
-const double rho = 0.79;
+const double rho = 0.78;
 double V[N];
 
 const double pmax = 1;
@@ -33,16 +33,16 @@ int main(){
     ofstream data_TM("./output/plot_TM.dat");
     data_TM << "# Longevidade\tQuantidade\n";
     
+    ofstream data_Phi("./output/plot_Phi.dat");
+    data_Phi << "# x\tPhi\n";
+    for(double i=-100; i<1000; i+=0.2)
+        data_Phi<<i<<"\t"<<phi(i)<<"\n";
 
     while(seed<M){
         
         double V_inicial = Iphi(pi);
         for(int i=0; i<N; i++) V[i] = V_inicial;
         
-        ofstream data_Phi("./output/plot_Phi.dat");
-        data_Phi << "# x\tPhi\n";
-        for(double i=-100; i<1000; i+=0.2)
-            data_Phi<<i<<"\t"<<phi(i)<<"\n";
         
         //ofstream data_pm("./output/plot_pm.dat");
         //data_pm << "# Tempo\tProbabilidade\n";
@@ -97,7 +97,7 @@ int main(){
             MVm += Vm;
             Tot_MVm++;
 
-            cout<<"Quant. de disparos: "<<disparos<<"\t| Vm="<<Vm<<" phi(Vm)="<<phi(Vm)<<"\t| Vmax="<<vmax<<" phi(Vmax)="<<phi(vmax)<<endl;
+            //cout<<"Seed: "<<seed<<"Tempo: "<<t<<"\t|"<<"Quant. de disparos: "<<disparos<<"\t| Vm="<<Vm<<" phi(Vm)="<<phi(Vm)<<"\t| Vmax="<<vmax<<" phi(Vmax)="<<phi(vmax)<<endl;
 
             t++;
         }
@@ -106,6 +106,9 @@ int main(){
         Tempos_de_mortes_normalizado[seed] = t;
         Tot_TM += Tempos_de_mortes_normalizado[seed];
         seed++;
+
+        //cout<<"contiuar?"<<endl;
+        //cin.get();
     }
     
     for(int i=0; i<M; i++){
