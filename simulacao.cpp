@@ -34,6 +34,9 @@ int main(){
     ofstream data_pm("./output/plot_pm.dat");
     data_pm << "# Tempo\tProbabilidade\n";
     
+    ofstream data_pZero("./output/plot_pZero.dat");
+    data_pZero << "# Tempo\tProbabilidade\n";
+
     ofstream data_Vm("./output/plot_Vm.dat");
     data_Vm << "# Tempo\tPotencial\n";
     
@@ -80,6 +83,7 @@ int main(){
         cout<<"Quant. de disparos: "<<disparos<<", Vm: "<<Vm<<" | phi(Vm)="<<phi(Vm)<<endl;
         data_Vm << t << "\t" << Vm << "\n";
         data_pm << t << "\t" << phi(Vm) << "\n";
+        data_pZero << t << "\t" << phi(V[0]) << "\n";
     }
     
     cout<<"V minimo: "<<vmin<<endl;
@@ -87,6 +91,7 @@ int main(){
     cout<<"Media dos Vm ate agr: "<<MVm/Tot_MVm<<" | Phi:"<< phi(MVm/Tot_MVm)<<endl;
     
     data_pm.close();
+    data_pZero.close();
     data_Vm.close();
 
 
