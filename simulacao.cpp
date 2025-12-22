@@ -18,7 +18,7 @@ const double pi = 0.2;
 
 
 int main(){
-    int M=400;
+    int M=800;
     int seed = 1;
     cin>>rho;
 
