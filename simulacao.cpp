@@ -3,6 +3,7 @@
 
 #include "phi.hpp"
 #include "graph.hpp"
+#include "distributions.hpp"
 
 using namespace std;
 
@@ -15,7 +16,6 @@ const double pmax = 1;
 const double pmin = 0;
 const double p0 = 0.05;
 const double pi = 0.2;
-
 
 int main(){
     int M=800;
@@ -45,8 +45,14 @@ int main(){
     ofstream data_Exp("./output/plot_Exp.dat");
     data_Exp << "# x\tExp\n";
     for(double i=0; i<10; i+=0.01)
-        data_Exp<<i<<"\t"<<1 - pow(M_E, -i)<<"\n";
+        data_Exp<<i<<"\t"<<exp_cdf(i, 1.0)<<"\n";
     data_Exp.close();
+
+    ofstream data_Norm("./output/plot_Norm.dat");
+    data_Norm << "# x\tNorm\n";
+    for(double i=0; i<=2.5; i+=0.001)
+        data_Norm<<i<<"\t"<<normal_cdf(i, 1, 0.17)<<"\n";
+    data_Norm.close();
 
     for(int j=0; j<M; j++){
         
@@ -61,12 +67,13 @@ int main(){
         //data_Vm << "# Tempo\tPotencial\n";
         
         
-        int t=1;
+        int t=0;
         bool Esta_Morto = 0;
         
         mt19937 gen(seed);
         uniform_real_distribution<long double> dist(0.0, 1.0);
         while(Esta_Morto==0){
+            t++;
             Esta_Morto = 1;
             
             long double vmax=V_inicial;
@@ -109,7 +116,6 @@ int main(){
 
             //cout<<"Seed: "<<seed<<" Tempo: "<<t<<"\t| "<<"Quant. de disparos: "<<disparos<<"\t| Vm="<<Vm<<" phi(Vm)="<<phi(Vm)<<"\t| Vmax="<<vmax<<" phi(Vmax)="<<phi(vmax)<<endl;
 
-            t++;
         }
     
         cout<<"Tempo até morrer: "<< t <<"\tSeed: "<<seed<<endl;
