@@ -4,6 +4,7 @@
 #include "phi.hpp"
 #include "graph.hpp"
 #include "distributions.hpp"
+#include "histogram.hpp"
 
 using namespace std;
 
@@ -33,6 +34,8 @@ int main(){
     
     ofstream data_TM("./output/Tempos_de_Morte.dat");
     data_TM << "# Longevidade\n";
+    ofstream data_TM_Hist("./output/plot_TM_Hist.dat");
+    data_TM_Hist << "# Longevidade\tQuantidade\n";
     ofstream data_TM_Acumulado("./output/plot_TM_Acumulado.dat");
     data_TM_Acumulado << "# Longevidade\tQuantidade\n";
     
@@ -132,9 +135,13 @@ int main(){
         //cout<<Tempos_de_mortes_normalizado[i]<<endl;
     }
     sort(Tempos_de_mortes_normalizado, Tempos_de_mortes_normalizado + M);
+    long double sd = Standard_Deviantion(Tempos_de_mortes_normalizado, M);
+    long double Bin_Width = Freedman_Diaconis(Tempos_de_mortes_normalizado, M);
 
     map<long double, long double> acumulado;
 
+    int hist = 1;
+    int old_bin = 0;
     double cont = 0;
     for(int i=1; i<M; i++){
         data_TM<<Tempos_de_mortes_normalizado[i-1]<<"\n";
@@ -144,9 +151,24 @@ int main(){
             acumulado[Tempos_de_mortes_normalizado[i-1]] = (i + i-cont)/(2*M);
             cont=0;
         }
+
+        int new_bin = floor((Tempos_de_mortes_normalizado[i-1] - Tempos_de_mortes_normalizado[0])/Bin_Width);
+        if(old_bin == new_bin) hist++;
+        else{
+            long double mid = (Tempos_de_mortes_normalizado[i-1] - Tempos_de_mortes_normalizado[i-1-hist])/2;
+            data_TM_Hist<<max(Tempos_de_mortes_normalizado[i-1], mid)<<"\t"<<hist<<"\n";
+            hist = 1;
+            old_bin = new_bin;
+        }
     }
 
     data_TM<<Tempos_de_mortes_normalizado[M-1]<<"\n";
+
+    if(old_bin == floor((Tempos_de_mortes_normalizado[M-1] - Tempos_de_mortes_normalizado[0])/Bin_Width)){
+        long double mid = (Tempos_de_mortes_normalizado[M-1] - Tempos_de_mortes_normalizado[M-1-hist])/2;
+        data_TM_Hist<<max(Tempos_de_mortes_normalizado[M-1], mid)<<"\t"<<hist<<"\n";
+    }
+
     acumulado[Tempos_de_mortes_normalizado[M-1]] = (M + M-cont)/(2*M);
 
 
@@ -154,6 +176,7 @@ int main(){
         data_TM_Acumulado<<p.first<<"\t"<<p.second<<"\n";
 
     data_TM.close();
+    data_TM_Hist.close();
     data_TM_Acumulado.close();
     //data_pm.close();
     //data_Vm.close();

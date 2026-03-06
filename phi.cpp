@@ -17,9 +17,8 @@ double phi(double V){
 }
 
 double Iphi(double p){
-    double g = 1/p;
+    double g = 1/(p+p0);
     g -= 1;
-    g+= p0;
 
     double f = -std::log(g);
     f += b;
