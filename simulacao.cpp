@@ -21,7 +21,10 @@ const double pi = 0.2;
 int main(){
     int M=800;
     int seed = 1;
+    cout<<"rho: ";
     cin>>rho;
+    cout<<"tamanho da amostra: ";
+    cin>>M;
 
     std::vector <std::pair<int, double>>* viz = construct(1, N);
     
@@ -39,6 +42,7 @@ int main(){
     ofstream data_TM_Acumulado("./output/plot_TM_Acumulado.dat");
     data_TM_Acumulado << "# Longevidade\tQuantidade\n";
     
+    /*
     ofstream data_Phi("./output/plot_Phi.dat");
     data_Phi << "# x\tPhi\n";
     for(double i=-100; i<1000; i+=0.2)
@@ -48,14 +52,22 @@ int main(){
     ofstream data_Exp("./output/plot_Exp.dat");
     data_Exp << "# x\tExp\n";
     for(double i=0; i<10; i+=0.01)
-        data_Exp<<i<<"\t"<<exp_cdf(i, 1.0)<<"\n";
+    data_Exp<<i<<"\t"<<exp_cdf(i, 1.0)<<"\n";
     data_Exp.close();
-
+    
+    ofstream data_Exp("./output/plot_Exp_Dist.dat");
+    data_Exp << "# x\tExp\n";
+    for(double i=0; i<10; i+=0.01)
+        data_Exp<<i<<"\t"<<exp_dist(i, 1.0)<<"\n";
+    data_Exp.close();
+    
     ofstream data_Norm("./output/plot_Norm.dat");
     data_Norm << "# x\tNorm\n";
     for(double i=0; i<=2.5; i+=0.001)
-        data_Norm<<i<<"\t"<<normal_cdf(i, 1, 0.17)<<"\n";
+    data_Norm<<i<<"\t"<<normal_cdf(i, 1, 0.17)<<"\n";
     data_Norm.close();
+    */
+
 
     for(int j=0; j<M; j++){
         
@@ -135,6 +147,23 @@ int main(){
         //cout<<Tempos_de_mortes_normalizado[i]<<endl;
     }
     sort(Tempos_de_mortes_normalizado, Tempos_de_mortes_normalizado + M);
+
+    bool usar_valores_gerados;
+    cout<<"usar valores gerados?";
+    cin>>usar_valores_gerados;
+
+    if(!usar_valores_gerados){
+        ifstream input_TM("./input/TM");
+
+        if(input_TM.is_open()) {
+            for(int k=0; k<M; k++){
+                input_TM>>Tempos_de_mortes_normalizado[k];
+            }
+
+            input_TM.close();
+        }
+    }
+
     long double sd = Standard_Deviantion(Tempos_de_mortes_normalizado, M);
     long double Bin_Width = Freedman_Diaconis(Tempos_de_mortes_normalizado, M);
 
@@ -155,8 +184,8 @@ int main(){
         int new_bin = floor((Tempos_de_mortes_normalizado[i-1] - Tempos_de_mortes_normalizado[0])/Bin_Width);
         if(old_bin == new_bin) hist++;
         else{
-            long double mid = (Tempos_de_mortes_normalizado[i-1] - Tempos_de_mortes_normalizado[i-1-hist])/2;
-            data_TM_Hist<<max(Tempos_de_mortes_normalizado[i-1], mid)<<"\t"<<hist<<"\n";
+            long double mid = (Tempos_de_mortes_normalizado[i-1] - Tempos_de_mortes_normalizado[i-hist])/2;
+            data_TM_Hist<<max(Tempos_de_mortes_normalizado[i-hist], mid)<<"\t"<<hist/(M*Bin_Width)<<"\n";
             hist = 1;
             old_bin = new_bin;
         }

@@ -8,3 +8,7 @@ double normal_cdf(double x, double mu, double sigma) {
 double exp_cdf(double x, double lambda){
     return 1 - pow(M_E, -lambda*x);
 }
+
+double exp_dist(double x, double lambda){
+    return lambda * pow(M_E, -lambda*x);
+}
