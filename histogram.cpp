@@ -20,5 +20,5 @@ long double Freedman_Diaconis(long double *TMN, int n){
 
     long double iqr = q3 - q1;
 
-    return 0.1*iqr / pow(n, 1/3);
+    return 2*iqr / pow(n, 1.0/3.0);
 }
