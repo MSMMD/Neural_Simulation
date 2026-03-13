@@ -10,7 +10,7 @@ using namespace std;
 
 const int n = 300;
 const int N = 300;
-double rho = 0.7;
+double rho = 0.785;
 long double V[N];
 
 const double pmax = 1;
@@ -19,22 +19,15 @@ const double p0 = 0.05;
 const double pi = 0.2;
 
 int main(){
-    int M=800;
     int seed = 1;
-    cout<<"rho: ";
+    cout<<"Seed: ";
+    cin>>seed;
+    cout<<"Rho: ";
     cin>>rho;
-    cout<<"tamanho da amostra: ";
-    cin>>M;
 
     std::vector <std::pair<int, double>>* viz = construct(1, N);
     
-    cout.precision(5);
-    long double MVm = 0;
-    long long Tot_MVm = 0;
-    
-    long double Tot_TM=0;
-    long double Tempos_de_mortes_normalizado[M];
-    
+    /*
     ofstream data_TM("./output/Tempos_de_Morte.dat");
     data_TM << "# Longevidade\n";
     ofstream data_TM_Hist("./output/plot_TM_Hist.dat");
@@ -42,7 +35,6 @@ int main(){
     ofstream data_TM_Acumulado("./output/plot_TM_Acumulado.dat");
     data_TM_Acumulado << "# Longevidade\tQuantidade\n";
     
-    /*
     ofstream data_Phi("./output/plot_Phi.dat");
     data_Phi << "# x\tPhi\n";
     for(double i=-100; i<1000; i+=0.2)
@@ -68,147 +60,70 @@ int main(){
     data_Norm.close();
     */
 
-
-    for(int j=0; j<M; j++){
-        
-        long double V_inicial = Iphi(pi);
-        for(int i=0; i<N; i++) V[i] = V_inicial;
+    long double V_inicial = Iphi(pi);
+    for(int i=0; i<N; i++) V[i] = V_inicial;
         
         
-        //ofstream data_pm("./output/plot_pm.dat");
-        //data_pm << "# Tempo\tProbabilidade\n";
+    //ofstream data_pm("./output/plot_pm.dat");
+    //data_pm << "# Tempo\tProbabilidade\n";
         
-        //ofstream data_Vm("./output/plot_Vm.dat");
-        //data_Vm << "# Tempo\tPotencial\n";
+    ofstream data_Vm("./output/plot_Vm.dat");
+    data_Vm << "# Tempo\tPotencial\n";
+    data_Vm<<0<<"\t"<<V_inicial<<"\n";
         
         
-        int t=0;
-        bool Esta_Morto = 0;
+    int t=0;
+    bool Esta_Morto = 0;
         
-        mt19937 gen(seed);
-        uniform_real_distribution<long double> dist(0.0, 1.0);
-        while(Esta_Morto==0){
-            t++;
-            Esta_Morto = 1;
+    mt19937 gen(seed);
+    uniform_real_distribution<long double> dist(0.0, 1.0);
+    while(Esta_Morto==0){
+        t++;
+        Esta_Morto = 1;
+        
+        int X[N];
+        int disparos=0;
+        
+        for(int i=0; i<N; i++){
+            long double Ui = dist(gen);
+            long double phiVi = phi(V[i]);
             
-            long double vmax=V_inicial;
-            int X[N];
-            int disparos=0;
-            
-            for(int i=0; i<N; i++){
-                long double Ui = dist(gen);
-                long double phiVi = phi(V[i]);
-                    
-                if(Ui < phiVi) X[i] = 1;
-                else X[i] = 0;
-            }
-            
-            for(int i=0; i<N; i++){
-                V[i] *= rho;
-                if(X[i] == 0){
-                    for(auto p: viz[i]){
-                        if(X[p.first]==1) V[i] += p.second;
-                    }
+            if(Ui < phiVi) X[i] = 1;
+            else X[i] = 0;
+        }
+        
+        for(int i=0; i<N; i++){
+            V[i] *= rho;
+            if(X[i] == 0){
+                for(auto p: viz[i]){
+                    if(X[p.first]==1) V[i] += p.second;
                 }
             }
-            for(int i=0; i<N; i++){
-                if(X[i] == 1){
-                    V[i] = 0;
-                    disparos++;
-                }
-
-                if(phi(V[i]) > 0.0001) Esta_Morto = 0;
+        }
+        for(int i=0; i<N; i++){
+            if(X[i] == 1){
+                V[i] = 0;
+                disparos++;
             }
-
-            long double Vm = 0;
-            for(int i=0; i<N; i++){
-                Vm += V[i];
-                vmax = max(V[i], vmax);
-            }
-            Vm /= N;
-            MVm += Vm;
-            Tot_MVm++;
-
-            //cout<<"Seed: "<<seed<<" Tempo: "<<t<<"\t| "<<"Quant. de disparos: "<<disparos<<"\t| Vm="<<Vm<<" phi(Vm)="<<phi(Vm)<<"\t| Vmax="<<vmax<<" phi(Vmax)="<<phi(vmax)<<endl;
-
+            
+            if(phi(V[i]) > 0.0001) Esta_Morto = 0;
         }
-    
-        cout<<"Tempo até morrer: "<< t <<"\tSeed: "<<seed<<endl;
-        Tempos_de_mortes_normalizado[seed] = t;
-        Tot_TM += Tempos_de_mortes_normalizado[seed];
-        seed++;
-
-        //cout<<"contiuar?"<<endl;
-        //cin.get();
-    }
-    
-    for(int i=0; i<M; i++){
-        Tempos_de_mortes_normalizado[i] *= M/Tot_TM;
-        //cout<<Tempos_de_mortes_normalizado[i]<<endl;
-    }
-    sort(Tempos_de_mortes_normalizado, Tempos_de_mortes_normalizado + M);
-
-    bool usar_valores_gerados;
-    cout<<"usar valores gerados?";
-    cin>>usar_valores_gerados;
-
-    if(!usar_valores_gerados){
-        ifstream input_TM("./input/TM");
-
-        if(input_TM.is_open()) {
-            for(int k=0; k<M; k++){
-                input_TM>>Tempos_de_mortes_normalizado[k];
-            }
-
-            input_TM.close();
+        
+        long double Vm = 0;
+        for(int i=0; i<N; i++){
+            Vm += V[i];
         }
+        Vm /= N;
+        data_Vm<<t<<"\t"<<Vm<<"\n";
+
+        cout<<"Seed: "<<seed<<" Tempo: "<<t<<"\t| "<<"Quant. de disparos: "<<disparos<<"\t| Vm="<<Vm<<" phi(Vm)="<<phi(Vm)<<endl;
     }
 
-    long double sd = Standard_Deviantion(Tempos_de_mortes_normalizado, M);
-    long double Bin_Width = Freedman_Diaconis(Tempos_de_mortes_normalizado, M);
-
-    map<long double, long double> acumulado;
-
-    int hist = 1;
-    int old_bin = 0;
-    double cont = 0;
-    for(int i=1; i<M; i++){
-        data_TM<<Tempos_de_mortes_normalizado[i-1]<<"\n";
-
-        if(Tempos_de_mortes_normalizado[i] == Tempos_de_mortes_normalizado[i-1]) cont++;
-        else{
-            acumulado[Tempos_de_mortes_normalizado[i-1]] = (i + i-cont)/(2*M);
-            cont=0;
-        }
-
-        int new_bin = floor((Tempos_de_mortes_normalizado[i-1] - Tempos_de_mortes_normalizado[0])/Bin_Width);
-        if(old_bin == new_bin) hist++;
-        else{
-            long double mid = (Tempos_de_mortes_normalizado[i-1] - Tempos_de_mortes_normalizado[i-hist])/2;
-            data_TM_Hist<<max(Tempos_de_mortes_normalizado[i-hist], mid)<<"\t"<<hist/(M*Bin_Width)<<"\n";
-            hist = 1;
-            old_bin = new_bin;
-        }
-    }
-
-    data_TM<<Tempos_de_mortes_normalizado[M-1]<<"\n";
-
-    if(old_bin == floor((Tempos_de_mortes_normalizado[M-1] - Tempos_de_mortes_normalizado[0])/Bin_Width)){
-        long double mid = (Tempos_de_mortes_normalizado[M-1] - Tempos_de_mortes_normalizado[M-1-hist])/2;
-        data_TM_Hist<<max(Tempos_de_mortes_normalizado[M-1], mid)<<"\t"<<hist<<"\n";
-    }
-
-    acumulado[Tempos_de_mortes_normalizado[M-1]] = (M + M-cont)/(2*M);
-
-
-    for(auto p:acumulado)
-        data_TM_Acumulado<<p.first<<"\t"<<p.second<<"\n";
-
-    data_TM.close();
-    data_TM_Hist.close();
-    data_TM_Acumulado.close();
+    //data_TM.close();
+    //data_TM_Hist.close();
+    //data_TM_Acumulado.close();
     //data_pm.close();
-    //data_Vm.close();
+    data_Vm.close();
     
 
     free(viz);
