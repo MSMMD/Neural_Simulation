@@ -33,10 +33,14 @@ int main(){
     long long Tot_MVm = 0;
     
     long double Tot_TM=0;
+    long double Tempos_de_mortes[M];
     long double Tempos_de_mortes_normalizado[M];
     
     ofstream data_TM("./output/Tempos_de_Morte.dat");
     data_TM << "# Longevidade\n";
+    ofstream data_TMN("./output/Tempos_de_Morte_Normalizado.dat");
+    data_TMN << "# Longevidade\n";
+
     ofstream data_TM_Hist("./output/plot_TM_Hist.dat");
     data_TM_Hist << "# Longevidade\tQuantidade\n";
     ofstream data_TM_Acumulado("./output/plot_TM_Acumulado.dat");
@@ -134,35 +138,39 @@ int main(){
         }
     
         cout<<"Tempo até morrer: "<< t <<"\tSeed: "<<seed<<endl;
-        Tempos_de_mortes_normalizado[seed] = t;
-        Tot_TM += Tempos_de_mortes_normalizado[seed];
+        Tempos_de_mortes[seed] = t;
+        Tot_TM += Tempos_de_mortes[seed];
         seed++;
 
         //cout<<"contiuar?"<<endl;
         //cin.get();
     }
-    
-    for(int i=0; i<M; i++){
-        Tempos_de_mortes_normalizado[i] *= M/Tot_TM;
-        //cout<<Tempos_de_mortes_normalizado[i]<<endl;
-    }
-    sort(Tempos_de_mortes_normalizado, Tempos_de_mortes_normalizado + M);
 
+    sort(Tempos_de_mortes, Tempos_de_mortes + M);
+    
     bool usar_valores_gerados;
     cout<<"usar valores gerados?";
     cin>>usar_valores_gerados;
 
     if(!usar_valores_gerados){
         ifstream input_TM("./input/TM");
+        Tot_TM = 0;
 
         if(input_TM.is_open()) {
             for(int k=0; k<M; k++){
-                input_TM>>Tempos_de_mortes_normalizado[k];
+                input_TM>>Tempos_de_mortes[k];
+                Tot_TM += Tempos_de_mortes[k];
             }
 
             input_TM.close();
         }
     }
+
+    for(int i=0; i<M; i++){
+        data_TM<<Tempos_de_mortes[i]<<"\n";
+        Tempos_de_mortes_normalizado[i] = (Tempos_de_mortes[i]) * M/Tot_TM;
+    }
+
 
     long double sd = Standard_Deviantion(Tempos_de_mortes_normalizado, M);
     long double Bin_Width = Freedman_Diaconis(Tempos_de_mortes_normalizado, M);
@@ -173,7 +181,7 @@ int main(){
     int old_bin = 0;
     double cont = 0;
     for(int i=1; i<M; i++){
-        data_TM<<Tempos_de_mortes_normalizado[i-1]<<"\n";
+        data_TMN<<Tempos_de_mortes_normalizado[i-1]<<"\n";
 
         if(Tempos_de_mortes_normalizado[i] == Tempos_de_mortes_normalizado[i-1]) cont++;
         else{
@@ -191,7 +199,7 @@ int main(){
         }
     }
 
-    data_TM<<Tempos_de_mortes_normalizado[M-1]<<"\n";
+    data_TMN<<Tempos_de_mortes_normalizado[M-1]<<"\n";
 
     if(old_bin == floor((Tempos_de_mortes_normalizado[M-1] - Tempos_de_mortes_normalizado[0])/Bin_Width)){
         long double mid = (Tempos_de_mortes_normalizado[M-1] - Tempos_de_mortes_normalizado[M-1-hist])/2;
@@ -205,6 +213,7 @@ int main(){
         data_TM_Acumulado<<p.first<<"\t"<<p.second<<"\n";
 
     data_TM.close();
+    data_TMN.close();
     data_TM_Hist.close();
     data_TM_Acumulado.close();
     //data_pm.close();
