@@ -139,7 +139,7 @@ int main(){
 
         }
     
-        //cout<<"Tempo até morrer: "<< t <<"\tSeed: "<<seed<<endl;
+        cout<<"Tempo até morrer: "<< t <<"\tSeed: "<<seed<<endl;
         Tempos_de_mortes[j] = t;
         data_TM<<Tempos_de_mortes[j]<<"\n";
 
@@ -151,9 +151,9 @@ int main(){
     }
 
     
-    bool usar_valores_gerados=1;
+    bool usar_valores_gerados;
     cout<<"usar valores gerados?";
-    //cin>>usar_valores_gerados;
+    cin>>usar_valores_gerados;
     
     if(!usar_valores_gerados){
         ifstream input_TM("./input/TM");
