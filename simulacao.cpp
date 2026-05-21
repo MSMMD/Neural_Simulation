@@ -25,6 +25,8 @@ int main(){
     cin>>rho;
     cout<<"tamanho da amostra: ";
     cin>>M;
+    cout<<"Seed Inicial: ";
+    cin>>seed;
 
     std::vector <std::pair<int, double>>* viz = construct(1, N);
     
@@ -137,39 +139,40 @@ int main(){
 
         }
     
-        cout<<"Tempo até morrer: "<< t <<"\tSeed: "<<seed<<endl;
-        Tempos_de_mortes[seed] = t;
-        Tot_TM += Tempos_de_mortes[seed];
+        //cout<<"Tempo até morrer: "<< t <<"\tSeed: "<<seed<<endl;
+        Tempos_de_mortes[j] = t;
+        data_TM<<Tempos_de_mortes[j]<<"\n";
+
+        Tot_TM += Tempos_de_mortes[j];
         seed++;
 
         //cout<<"contiuar?"<<endl;
         //cin.get();
     }
 
-    sort(Tempos_de_mortes, Tempos_de_mortes + M);
     
-    bool usar_valores_gerados;
+    bool usar_valores_gerados=1;
     cout<<"usar valores gerados?";
-    cin>>usar_valores_gerados;
-
+    //cin>>usar_valores_gerados;
+    
     if(!usar_valores_gerados){
         ifstream input_TM("./input/TM");
         Tot_TM = 0;
-
+        
         if(input_TM.is_open()) {
             for(int k=0; k<M; k++){
                 input_TM>>Tempos_de_mortes[k];
                 Tot_TM += Tempos_de_mortes[k];
             }
-
+            
             input_TM.close();
         }
     }
 
-    for(int i=0; i<M; i++){
-        data_TM<<Tempos_de_mortes[i]<<"\n";
+    sort(Tempos_de_mortes, Tempos_de_mortes + M);
+
+    for(int i=0; i<M; i++)
         Tempos_de_mortes_normalizado[i] = (Tempos_de_mortes[i]) * M/Tot_TM;
-    }
 
 
     long double sd = Standard_Deviantion(Tempos_de_mortes_normalizado, M);
